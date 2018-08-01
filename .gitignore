@@ -1,5 +1,6 @@
 # Personal Documents
 DESIGN.md
+config.ini
 
 # Distribution / packaging
 .Python
@@ -33,3 +34,6 @@ venv.bak/
 __pycache__/
 *.py[cod]
 *$py.class
+
+# VS Code
+.vscode/
