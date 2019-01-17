@@ -4,6 +4,8 @@ from github import Github
 import subprocess
 import pathlib
 import os
+import psycopg2
+import re
 
 relative_path_from_utils_dir = '../../../.config/config.ini'
 config = configparser.ConfigParser()
@@ -68,15 +70,35 @@ def count_lines_of_code_to_sql_statements(project_name, dir, filename):
         print(cpe.__cause__)
 
 def main():
+    # Initialize Github Client; get repository list
     _user, _pass = get_github_credentials()
     github_client = Github(_user, _pass)
     # db_name = config['SQLITE']['DBFILE']
     repo_list = github_client.get_user().get_repos()
+
+    # Clear our SQL statements on a fresh run
+    sql_statements_file = 'sql_statements'
+    if pathlib.Path(sql_statements_file).exists():
+        os.remove(sql_statements_file)
+
+    # Count lines of code in each repo; however, output data as SQL statements
     for repo in repo_list:
         clone_repo(repo.clone_url)
         # count_lines_of_code_to_sqlite('p_{name}'.format(name=repo.name), repo.name, db_name)
-        count_lines_of_code_to_sql_statements('p_{name}'.format(name=repo.name), repo.name, 'sql_statements3')
+        count_lines_of_code_to_sql_statements('p_{name}'.format(name=repo.name), repo.name, sql_statements_file)
         delete_repo(repo.name)
+
+    # Initialize database client connection; open cursor to perform db operations
+    conn = psycopg2.connect("dbname={db} user={usr}"
+        .format(db=config['DB_CREDENTIALS']['DB_NAME'], usr=config['DB_CREDENTIALS']['USERNAME']))
+    cur = conn.cursor()
+
+    # For each SQL statement, execute line
+    with open(sql_statements_file) as ssf:
+        filecontents = "".join(ssf.readlines())
+        for statement in re.findall(r"""([\S\s]+?;){1}""", filecontents):
+            print(statement)
+            cur.execute(statement)
 
 if __name__ == '__main__':
     main()

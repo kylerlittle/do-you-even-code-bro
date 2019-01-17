@@ -1,3 +1,11 @@
 [GITHUB_CREDENTIALS]
 USERNAME = username
 PASSWORD = password
+
+[SQLITE]
+DBFILE = example.db
+
+[DB_CREDENTIALS]
+DB_NAME = example_db
+USERNAME = username
+PASSWORD = password
