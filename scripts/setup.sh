@@ -29,7 +29,7 @@ cd ..
 
 # Setup virtual env in used-entered directory of project.
 while true; do
-    read -p "Which directory do you wish to setup virtualenv?" answer
+    read -p "Which directory do you wish to setup virtualenv? " answer
     if [ -d "$answer" ]; then
         cd "$answer" && break
     else
