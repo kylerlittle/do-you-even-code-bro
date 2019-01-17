@@ -3,6 +3,7 @@ from utils.file_utils import get_absolute_path
 from github import Github
 import subprocess
 import pathlib
+import os
 
 relative_path_from_utils_dir = '../../../.config/config.ini'
 config = configparser.ConfigParser()
@@ -13,6 +14,9 @@ def get_github_credentials():
 
 def clone_repo(clone_url):
     try:
+        # Add user/pass to avoid issues for private repos; BEWARE -- this adds credentials to .git/config as well as bash history
+        clone_url = clone_url.replace("https://","https://{usr}:{pw}@"
+            .format(usr=config['GITHUB_CREDENTIALS']['USERNAME'], pw=config['GITHUB_CREDENTIALS']['PASSWORD']))
         # Only clone most recent version
         args = ['git', 'clone', '--depth', '1', clone_url]
         subprocess.check_call(args)
@@ -44,18 +48,35 @@ def count_lines_of_code_to_sqlite(project_name, dir, db_name):
         proc2.communicate()
     except subprocess.CalledProcessError as cpe:
         print(cpe.__cause__)
-        
+
+def count_lines_of_code_to_sql_statements(project_name, dir, filename):
+    """For directory dir, count lines of code, but generate output as SQL statements;
+    on first call, create table. On subsequent calls, add 'sql-append' switch to append
+    SQL statements to filename.
+
+    @params
+    project_name: allows cloc to differentiate input sources (ensure this is different from dir) and distinct bw calls
+    dir: cloned repository name
+    filename: file to write SQL statements to
+    """
+    try:
+        args = ['cloc', '--sql', filename, '--sql-project', project_name, dir]
+        if pathlib.Path(filename).exists(): 
+            args.insert(args.index(dir), '--sql-append')
+        subprocess.check_call(args)
+    except subprocess.CalledProcessError as cpe:
+        print(cpe.__cause__)
 
 def main():
     _user, _pass = get_github_credentials()
     github_client = Github(_user, _pass)
-    db_name = config['SQLITE']['DBFILE']
+    # db_name = config['SQLITE']['DBFILE']
     repo_list = github_client.get_user().get_repos()
     for repo in repo_list:
-        if repo.name != 'hackmit_2017':
-            clone_repo(repo.clone_url)
-            count_lines_of_code_to_sqlite(repo.name, repo.name, db_name)
-            delete_repo(repo.name)
+        clone_repo(repo.clone_url)
+        # count_lines_of_code_to_sqlite('p_{name}'.format(name=repo.name), repo.name, db_name)
+        count_lines_of_code_to_sql_statements('p_{name}'.format(name=repo.name), repo.name, 'sql_statements3')
+        delete_repo(repo.name)
 
 if __name__ == '__main__':
     main()
