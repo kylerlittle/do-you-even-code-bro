@@ -16,7 +16,7 @@ def get_github_credentials():
 
 def clone_repo(clone_url):
     try:
-        # Add user/pass to avoid issues for private repos; BEWARE -- this adds credentials to .git/config as well as bash history
+        # Add user/pass to avoid issues for private repos; BEWARE -- this adds credentials to bash history
         clone_url = clone_url.replace("https://","https://{usr}:{pw}@"
             .format(usr=config['GITHUB_CREDENTIALS']['USERNAME'], pw=config['GITHUB_CREDENTIALS']['PASSWORD']))
         # Only clone most recent version
@@ -96,8 +96,8 @@ def main():
     # For each SQL statement, execute line
     with open(sql_statements_file) as ssf:
         filecontents = "".join(ssf.readlines())
+        # Regex matches each single/multi-line statement ending in semi-colon
         for statement in re.findall(r"""([\S\s]+?;){1}""", filecontents):
-            print(statement)
             cur.execute(statement)
 
 if __name__ == '__main__':
