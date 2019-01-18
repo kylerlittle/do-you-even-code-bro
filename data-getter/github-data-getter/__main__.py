@@ -88,10 +88,16 @@ def main():
         count_lines_of_code_to_sql_statements('p_{name}'.format(name=repo.name), repo.name, sql_statements_file)
         delete_repo(repo.name)
 
-    # Initialize database client connection; open cursor to perform db operations
-    conn = psycopg2.connect("dbname={db} user={usr}"
-        .format(db=config['DB_CREDENTIALS']['DB_NAME'], usr=config['DB_CREDENTIALS']['USERNAME']))
+    # Initialize local database client connection; open cursor to perform db operations
+    conn = psycopg2.connect("dbname={db} user={usr} password={pw}"
+        .format(db=config['DB_CREDENTIALS']['DB_NAME'], usr=config['DB_CREDENTIALS']['USERNAME'],
+        pw=config['DB_CREDENTIALS']['PASSWORD']))
     cur = conn.cursor()
+
+    # In future, ensure database server is active and listening on port (currently 5432)
+    
+    # For every fresh run, delete tables. Might optimize later.
+    cur.execute("drop table if exists t; drop table if exists metadata")
 
     # For each SQL statement, execute line
     with open(sql_statements_file) as ssf:
@@ -99,6 +105,13 @@ def main():
         # Regex matches each single/multi-line statement ending in semi-colon
         for statement in re.findall(r"""([\S\s]+?;){1}""", filecontents):
             cur.execute(statement)
+
+    # Ensure changes persist
+    conn.commit()
+
+    # Close communication channel with database
+    cur.close()
+    conn.close()
 
 if __name__ == '__main__':
     main()
